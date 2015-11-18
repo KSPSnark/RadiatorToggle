@@ -18,6 +18,8 @@ namespace RadiatorToggle
     {
         private static readonly String ACTIVE_STATUS = "Cooling";
         private static readonly String INACTIVE_STATUS = "Inactive";
+        private static readonly String ACTIVATE_EVENT_TEXT = "Activate";
+        private static readonly String DEACTIVATE_EVENT_TEXT = "Deactivate";
 
         /// <summary>
         /// Tracks the status of the radiator. The string is what's shown in the right-click menu.
@@ -59,7 +61,7 @@ namespace RadiatorToggle
         /// Right-click context menu item for toggling radiator in flight scene.
         /// </summary>
         /// <param name="actionParam"></param>
-        [KSPEvent(active = true, guiActive = true, guiActiveEditor = false, guiName = "Toggle Radiator", name = "toggleRadiatorFlight")]
+        [KSPEvent(active = true, guiActive = true, guiActiveEditor = false, guiName = "Toggle Radiator")]
         public void toggleRadiatorFlightEvent()
         {
             isActive = !isActive;
@@ -69,7 +71,7 @@ namespace RadiatorToggle
         /// Right-click context menu item for toggling radiator in edit.
         /// </summary>
         /// <param name="actionParam"></param>
-        [KSPEvent(active = true, guiActive = false, guiActiveEditor = true, guiName = "Toggle Radiator", name = "toggleRadiatorEditor")]
+        [KSPEvent(active = true, guiActive = false, guiActiveEditor = true, guiName = "Toggle Radiator")]
         public void toggleRadiatorEditorEvent()
         {
             // If this is done in the editor, we want to toggle it not just for this part,
@@ -90,7 +92,7 @@ namespace RadiatorToggle
             // When the part is loaded, initialize the radiator state based on active/inactive
             // state in this module.
             base.OnLoad(node);
-            setRadiatorState(part, isActive);
+            setRadiatorState(part, Events, isActive);
         }
 
         /// <summary>
@@ -106,7 +108,7 @@ namespace RadiatorToggle
             {
                 if (isActive != value)
                 {
-                    if (setRadiatorState(part, value))
+                    if (setRadiatorState(part, Events, value))
                     {
                         status = value ? ACTIVE_STATUS : INACTIVE_STATUS;
                         Debug.Log("RadiatorToggle: Set status of" + part.name + " to " + status);
@@ -122,19 +124,26 @@ namespace RadiatorToggle
         /// <summary>
         /// Attempt to set radiator state. Returns true for success, false for failure.
         /// </summary>
+        /// <param name="part"></param>
+        /// <param name="events"></param>
         /// <param name="isEnabled"></param>
-        private static bool setRadiatorState(Part part, bool isEnabled)
+        private static bool setRadiatorState(Part part, BaseEventList events, bool isEnabled)
         {
             List<ModuleActiveRadiator> radiatorModules = part.Modules.GetModules<ModuleActiveRadiator>();
             if (radiatorModules.Count == 0)
             {
                 Debug.LogWarning("RadiatorToggle: No ModuleActiveRadiator found for " + part.name);
+                events["toggleRadiatorFlightEvent"].active = false;
+                events["toggleRadiatorEditorEvent"].active = false;
                 return false;
             }
             foreach (ModuleActiveRadiator radiatorModule in radiatorModules)
             {
                 radiatorModule.enabled = isEnabled;
             }
+            String eventText = isEnabled ? DEACTIVATE_EVENT_TEXT : ACTIVATE_EVENT_TEXT;
+            events["toggleRadiatorFlightEvent"].guiName = eventText;
+            events["toggleRadiatorEditorEvent"].guiName = eventText;
             return true;
         }
     }
